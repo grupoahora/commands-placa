@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 # Importaciones de las dependencias del proyecto
 # Asegúrate de que estas rutas sean correctas o que el PYTHONPATH esté configurado
 from app.utils.chromedriver import get_driver
-from app.utils.utils import get_boleta_informativa
+from app.utils.utils import get_asientos
 
 load_dotenv()
 
@@ -16,7 +16,7 @@ def main():
     parser = argparse.ArgumentParser(description="Obtener información de boleta informativa.")
     parser.add_argument("--placa", type=str, required=True, help="Número de placa del vehículo.")
     parser.add_argument("--idplacahistory", type=str, required=True, help="ID del historial de placa.")
-
+    parser.add_argument("--oficina", type=str, default="LIMA", help="Oficina de registro (default: LIMA).")
     args = parser.parse_args()
 
     fecha = datetime.now()
@@ -27,23 +27,21 @@ def main():
 
     placa = args.placa.upper()
     idplacahistory = args.idplacahistory
-    path = f"/var/www/commands-placa/boletas/{placa}/{fecha_personalizado}/{idplacahistory}"
+    oficina = args.oficina
+    path = f"/var/www/commands-placa/asientos/{placa}/{fecha_personalizado}/{idplacahistory}"
     os.makedirs(path, exist_ok=True)
     
     driver = None
     try:
         driver = get_driver(placa, idplacahistory, path)
 
-        message, path_pdf_boleta, propietarios, afectaciones = get_boleta_informativa(
-            user, password, placa, 'https://sprl.sunarp.gob.pe/sprl/ingreso', driver, idplacahistory, path
-        )
+        message, asientos = get_asientos(user, password, placa, 'https://sprl.sunarp.gob.pe/sprl/ingreso', driver, idplacahistory, path, oficina)
         
         result = {
             "message": message,
-            "path_pdf_boleta": f"/apipy/download{path_pdf_boleta}",
-            "propietarios": propietarios if propietarios is not None else "null",
-            "afectaciones": afectaciones if afectaciones is not None else "null"
-        }
+            "asientos": asientos if asientos is not None else "null"
+        }   
+        # Imprimir el resultado en formato JSON
         print(json.dumps(result))
 
     except Exception as e:

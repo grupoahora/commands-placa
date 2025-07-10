@@ -32,6 +32,7 @@ def get_driver(placa, idplacahistory, path):
     options.add_argument("--safebrowsing-disable-auto-update")
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--window-size=1920,1080")
+    options.add_argument('--start-maximized')
 
     options.add_experimental_option("prefs", {
         "download.default_directory": path,
@@ -40,7 +41,7 @@ def get_driver(placa, idplacahistory, path):
         "safebrowsing.enabled": True,
         "plugins.always_open_pdf_externally": True  # 🔥 Importante para que Edge descargue PDF
     })
-
+    options.set_capability('goog:loggingPrefs', {'browser': 'ALL'})  # ✅ compatible
     driver = webdriver.Edge(options=options)
     return driver
 
@@ -76,4 +77,3 @@ def take_screenshot(driver, path="captura.png"):
     time.sleep(5)  # Breve pausa para asegurarse de que la página haya cargado completamente
     driver.save_screenshot(path)
     
-    print(f"Captura guardada en: {path}")

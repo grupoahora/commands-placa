@@ -35,5 +35,32 @@ def get_captcha(img_captcha_base64, max_retries=5, delay=5):
     
         
         
-    
+def get_turnstile_token(ts_data, api_key, max_retries=5, delay=5):
+    solver = TwoCaptcha(api_key)
+    task_data = {
+        'sitekey': ts_data['websiteKey'],
+        'url': ts_data['websiteURL'],
+    }
+    if ts_data.get("action"):
+        task_data["action"] = ts_data["action"]
+    if ts_data.get("data"):
+        task_data["data"] = ts_data["data"]
+    if ts_data.get("userAgent"):
+        task_data["userAgent"] = ts_data["userAgent"]
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            print(f"🎯 Resolviendo captcha (intento #{attempt})...")
+            result = solver.turnstile(**task_data)
+            token = result['code']
+            print("✅ Token resuelto:", token)
+            return token
+        except Exception as e:
+            print(f'⚠️ Error al resolver captcha: {e}')
+            if attempt < max_retries:
+                print(f'⏳ Reintentando en {delay}s...')
+                time.sleep(delay)
+            else:
+                raise Exception("❌ No se pudo resolver el captcha tras varios intentos.")
+
 

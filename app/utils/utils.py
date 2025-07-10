@@ -2,7 +2,7 @@ from app.utils.boleta import login_balance, get_balance
 from app.utils.chromedriver import find_element_by, take_screenshot,get_driver, wait_for_page_load, wait_attr_by_find_element, wait_for_page_load_complete
 from app.utils.tesseract import get_data_consulta_vehicular, get_captcha_tesseract
 from app.utils.pdfplumber import get_caracteristicas_vehiculo, get_propietarios, get_afectaciones
-from app.utils.captcha import get_captcha
+from app.utils.captcha import get_captcha, get_turnstile_token
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
@@ -126,9 +126,7 @@ def get_boleta_informativa(user, password, placa, url, driver, idplacahistory, p
                     path_pdf_boleta = f"{path}/*.pdf"
                     path_pdf_boleta = next(glob.iglob(path_pdf_boleta))
                     
-                    propietarios = get_propietarios(path_pdf_boleta)
-                    caracteristicas = get_caracteristicas_vehiculo(path_pdf_boleta)
-                    afectaciones = get_afectaciones(path_pdf_boleta)
+                    
 
                     message = 'Boleta informativa descargada con éxito'
 
@@ -140,9 +138,7 @@ def get_boleta_informativa(user, password, placa, url, driver, idplacahistory, p
                     path_pdf_boleta = f"{path}/*.pdf"
                     path_pdf_boleta = next(glob.iglob(path_pdf_boleta))
                     
-                    propietarios = get_propietarios(path_pdf_boleta)
-                    caracteristicas = get_caracteristicas_vehiculo(path_pdf_boleta)
-                    afectaciones = get_afectaciones(path_pdf_boleta)
+                    
 
                     message = 'Boleta informativa descargada con éxito'
 
@@ -150,7 +146,7 @@ def get_boleta_informativa(user, password, placa, url, driver, idplacahistory, p
                     message = 'No se encontró el archivo PDF de la boleta'
 
 
-        return message, path_pdf_boleta, propietarios, caracteristicas, afectaciones
+        return message, path_pdf_boleta, propietarios, afectaciones
     
         
     except Exception as e:
@@ -726,7 +722,7 @@ def get_asientos(user, password, placa, url, driver, idplacahistory, pathpdf, of
             button_tabla.click()
 
             # Esperar para que la acción tenga efecto (evita usar sleep si puedes usar WebDriverWait)
-            time.sleep(60)
+            time.sleep(5)
 
             # Tomar screenshot después de la acción
             take_screenshot(driver, f"{pathpdf}/evidencias/tabla_asientos.png")
@@ -752,7 +748,10 @@ def get_asientos(user, password, placa, url, driver, idplacahistory, pathpdf, of
                 
                 time.sleep(5)
                 # Tomar screenshot después de la acción
-                take_screenshot(driver, f"{pathpdf}/evidencias/{text_titulo}/{text_titulo}.png")
+                path_titulo = f"{pathpdf}/evidencias/{text_titulo}"
+                os.makedirs(path_titulo, exist_ok=True)
+
+                take_screenshot(driver, f"{path_titulo}/{text_titulo}.png")
                 
                 
                 # obtener elemento con tag name nz-modal-confirm-container
@@ -800,7 +799,7 @@ def get_asientos(user, password, placa, url, driver, idplacahistory, pathpdf, of
                 titulo = asiento["Titulo"]
                 
                 # Llamar a la función get_pdf_asiento
-                message, path_pdf_asiento = get_pdf_asiento(oficina, anio, titulo, driver, pathpdf)
+                message, path_pdf_asiento = get_pdf_asiento(oficina, anio, titulo, driver, path_titulo)
 
                 # Agregar pdfs a asiento
                 asiento["pdfs"] = path_pdf_asiento
@@ -835,8 +834,34 @@ def get_pdf_asiento(oficina, anio, titulo, driver, pathpdf):
         
         # Hacer clic en el botón
         button_acepto.click()
-    take_screenshot(driver, f"{pathpdf}/evidencias/open_page_siguelo.png")
+    take_screenshot(driver, f"{pathpdf}/open_page_siguelo.png")
     time.sleep(5)
+    inyectar_interceptor_turnstile(driver)
+    # Esperar a que algo dispare el render
+    time.sleep(3) 
+    ts_data = extraer_datos_turnstile(driver)
+    token = resolver_turnstile_2captcha(ts_data, API_KEY)
+    inyectar_token(driver, token)
+    take_screenshot(driver, f"{pathpdf}/open_page_siguelo2.png")
+    return
+    turnstile_div = find_element_by(driver, By.CLASS_NAME, "cf-turnstile", 5)
+    if turnstile_div:
+        # imprimir div turnstile con contenido
+        
+        page_url = driver.current_url
+        token = get_turnstile_token(page_url)
+        # Ejecutar un script para establecer el token en el campo de entrada
+        driver.execute_script("""
+            document.querySelector('[name="cf-turnstile-response"]').value = arguments[0];
+        """, token)
+        time.sleep(5)
+        take_screenshot(driver, f"{pathpdf}/open_page_siguelo2.png")
+
+        # Obtener input type checkbox dentro de turnstile_div y hacer click
+        checkbox_turnstile = turnstile_div.find_element(By.CSS_SELECTOR, "input[type='checkbox']")
+        checkbox_turnstile.click()
+        time.sleep(5)
+
     # Obtener select con id cboOficina
     select_oficina = find_element_by(driver, By.ID, 'cboOficina', 5)
     # Hacer clic en el select para desplegar las opciones
@@ -874,31 +899,13 @@ def get_pdf_asiento(oficina, anio, titulo, driver, pathpdf):
     time.sleep(5)
     # Obtener img canva con id textCanvas
 
-    img_canva = find_element_by(driver, By.ID, 'textCanvas', 5)
-    # Obtener la imagen como un PNG binario
-    captcha_png = img_canva.screenshot_as_png
-    captcha_image = Image.open(io.BytesIO(captcha_png))
-    # Asegurar que el directorio existe
-    path_captchas = f"{pathpdf}/evidencias/captcha_asientos/{titulo}"
-    os.makedirs(path_captchas, exist_ok=True)
-    # Guardar la imagen del captcha
-    captcha_image.save(f"{path_captchas}/captcha_one.png", format="PNG")
-    # Obtener el texto del captcha
-    captcha_text1 = get_captcha(f"{path_captchas}/captcha_one.png")
     
-    captcha_text = captcha_text1
-    # Ingresar el texto resuelto en el campo del captcha con id codigoCaptcha
-    input_captcha = find_element_by(driver, By.ID, 'codigoCaptcha', 5)
-    input_captcha.clear()
-    for char in captcha_text:
-        input_captcha.send_keys(char)
-    time.sleep(5)
     
     # Buscar button con texto BUSCAR
     button_buscar = find_element_by(driver, By.XPATH, "//button[contains(text(), 'BUSCAR')]", 5)
     # Hacer clic en el botón
     button_buscar.click()
-    time.sleep(60)
+    time.sleep(5)
     
     button_ok_off_captcha = find_element_by(driver, By.XPATH, "//button[contains(text(), 'OK')]", 5)
     while button_ok_off_captcha:
@@ -906,33 +913,29 @@ def get_pdf_asiento(oficina, anio, titulo, driver, pathpdf):
         # Hacer clic en el botón
         button_ok_off_captcha.click()
         time.sleep(5)
-        img_canva = find_element_by(driver, By.ID, 'textCanvas', 5)
-        # Obtener la imagen como un PNG binario
-        captcha_png = img_canva.screenshot_as_png
-        captcha_image = Image.open(io.BytesIO(captcha_png))
-        # Asegurar que el directorio existe
-        os.makedirs(path_captchas, exist_ok=True)
-        # Guardar la imagen del captcha
-        captcha_image.save(f"{path_captchas}/captcha_one.png", format="PNG")
-        # Obtener el texto del captcha
-        captcha_text1 = get_captcha(f"{path_captchas}/captcha_one.png")
-      
-        captcha_text = captcha_text1
-        # Ingresar el texto resuelto en el campo del captcha con id codigoCaptcha
-        input_captcha = find_element_by(driver, By.ID, 'codigoCaptcha', 5)
-        input_captcha.clear()
-        for char in captcha_text:
-            input_captcha.send_keys(char)
-        time.sleep(5)
+        turnstile_div = find_element_by(driver, By.CLASS_NAME, "cf-turnstile", 5)
+        if turnstile_div:
+            sitekey = turnstile_div.get_attribute("data-sitekey")
+            page_url = driver.current_url
+            token = get_turnstile_token(sitekey, page_url)
+            # Ejecutar un script para establecer el token en el campo de entrada
+            driver.execute_script("""
+                document.querySelector('[name="cf-turnstile-response"]').value = arguments[0];
+            """, token)
+            time.sleep(5)
+            # Obtener input type checkbox dentro de turnstile_div y hacer click
+            checkbox_turnstile = turnstile_div.find_element(By.CSS_SELECTOR, "input[type='checkbox']")
+            checkbox_turnstile.click()
+            time.sleep(5)
         # Buscar button con texto BUSCAR
         button_buscar = find_element_by(driver, By.XPATH, "//button[contains(text(), 'BUSCAR')]", 5)
         # Hacer clic en el botón
         button_buscar.click()
-        time.sleep(60)
+        time.sleep(5)
         
         button_ok_off_captcha = find_element_by(driver, By.XPATH, "//button[contains(text(), 'OK')]", 5)
     
-    take_screenshot(driver, f"{pathpdf}/{titulo}/evidencias/resultado_siguelo_pdf.png")
+    take_screenshot(driver, f"{pathpdf}/resultado_siguelo_pdf.png")
     
     
     # Obtener a que contenga un span con un elemento mat-icon y el text " Acceder al asiento de inscripción y TIVE"
@@ -948,7 +951,7 @@ def get_pdf_asiento(oficina, anio, titulo, driver, pathpdf):
     # Tomar screenshot después de la acción
     # Hacer clic en el botón
     button_descargar.click()
-    take_screenshot(driver, f"{pathpdf}/{titulo}/evidencias/tabla_pdf_asientos.png")
+    take_screenshot(driver, f"{pathpdf}/tabla_pdf_asientos.png")
     time.sleep(10)
     # Obtener elemento con class mat-card-content
     card_content = find_element_by(driver, By.CLASS_NAME, 'mat-card-content', 5)
@@ -979,9 +982,9 @@ def get_pdf_asiento(oficina, anio, titulo, driver, pathpdf):
         else:
             path_pdf_asiento = max(glob.iglob(path), key=os.path.getctime)
             nombre_pdf_asiento = os.path.basename(path_pdf_asiento)
-            path_pdf_titulo = f"{pathpdf}/evidencias/{titulo}/{i+1}/"
+            path_pdf_titulo = f"{pathpdf}/{titulo}/{i+1}/"
             os.makedirs(path_pdf_titulo, exist_ok=True)
-            path_pdf_titulo = f"{pathpdf}/evidencias/{titulo}/{i+1}/{nombre_pdf_asiento}"
+            path_pdf_titulo = f"{pathpdf}/{titulo}/{i+1}/{nombre_pdf_asiento}"
             os.rename(path_pdf_asiento, path_pdf_titulo)
 
         pdfs.append(path_pdf_titulo)
@@ -996,7 +999,51 @@ def get_pdf_asiento(oficina, anio, titulo, driver, pathpdf):
     else:
         message = 'No se pudieron descargar los PDFs'
     return message, pdfs
-    
+
+
+
+def inyectar_interceptor_turnstile(driver):
+    js = """
+    const i = setInterval(() => {
+        if (window.turnstile) {
+            clearInterval(i)
+            window.turnstile.render = (a, b) => {
+                const p = {
+                    type: "TurnstileTaskProxyless",
+                    websiteKey: b.sitekey,
+                    websiteURL: window.location.href,
+                    data: b.cData,
+                    pagedata: b.chlPageData,
+                    action: b.action,
+                    userAgent: navigator.userAgent
+                }
+                console.log("###TS_DATA###" + JSON.stringify(p))
+                window.tsCallback = b.callback
+                return 'foo'
+            }
+        }
+    }, 10)
+    """
+    driver.execute_script(js)   
+
+
+def extraer_datos_turnstile(driver, timeout=10):
+    print("⏳ Esperando los datos de Turnstile...")
+    for _ in range(timeout * 10):
+        logs = driver.get_log("browser")
+        for entry in logs:
+            if "###TS_DATA###" in entry["message"]:
+                raw_json = entry["message"].split("###TS_DATA###")[1]
+                print("✅ Datos capturados.")
+                return json.loads(raw_json)
+        time.sleep(0.5)
+    raise Exception("❌ No se pudieron capturar los datos de Turnstile")
+
+def inyectar_token(driver, token):
+    print("🚀 Inyectando token en el navegador...")
+    driver.execute_script(f'window.tsCallback("{token}")')
+    print("✅ Token inyectado con éxito.")
+
 def get_soats(placa, url, driver, idplacahistory, path):
     
     try:
