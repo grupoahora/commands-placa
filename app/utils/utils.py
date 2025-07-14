@@ -431,7 +431,9 @@ def get_multas(numero_documento, idplacahistory, driver, url, path):
     # Acceder a la URL
     driver.get(url)
     time.sleep(15)
-    take_screenshot(driver, f"{path}/evidencias/open_page_multas.png")
+    path = f"{path}/evidencias"
+    os.makedirs(path, exist_ok=True)
+    take_screenshot(driver, f"{path}/open_page_multas.png")
     
     # Buscar el input con formcontrolname="numero_documento" usando find_element_by(driver, By.CSS_SELECTOR, 'input[formcontrolname="Dni"]', 5)
     input_dni = find_element_by(driver, By.CSS_SELECTOR, 'input[formcontrolname="Dni"]', 5)
@@ -447,7 +449,7 @@ def get_multas(numero_documento, idplacahistory, driver, url, path):
     # Obtener la imagen como un PNG binario
     captcha_png = img_captcha.screenshot_as_png
     captcha_image = Image.open(io.BytesIO(captcha_png))
-    path_captchas = f"{path}/evidencias/captchas"
+    path_captchas = f"{path}/captchas"
     # Asegurar que el directorio existe
     os.makedirs(path_captchas, exist_ok=True)
 
@@ -799,10 +801,9 @@ def get_asientos(user, password, placa, url, driver, idplacahistory, pathpdf, of
                 titulo = asiento["Titulo"]
                 
                 # Llamar a la función get_pdf_asiento
-                message, path_pdf_asiento = get_pdf_asiento(oficina, anio, titulo, driver, path_titulo)
 
                 # Agregar pdfs a asiento
-                asiento["pdfs"] = path_pdf_asiento
+                asiento["pdfs"] = None
             message = 'Asientos encontrados'
             return message, asientos_data
                         
