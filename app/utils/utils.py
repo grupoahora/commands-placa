@@ -348,11 +348,10 @@ def get_revision_tecnica(placa, url, driver, idplacahistory, path):
         image = Image.open(BytesIO(img_captcha_decode))
         image.convert("RGB")
         path_captchas = f"{path}/evidencias/captchas"
-        if not os.path.exists(path_captchas):
-            os.makedirs(path_captchas)
-            image.save(f"{path_captchas}/captcha_one.png", format="PNG")
-        else:
-            image.save(f"{path_captchas}/captcha_one.png", format="PNG")
+        os.makedirs(path_captchas, exist_ok=True)
+        image.save(f"{path_captchas}/captcha_one.png", format="PNG")
+
+       
 
         # Guardar la imagen en formato PNG
         
@@ -373,11 +372,8 @@ def get_revision_tecnica(placa, url, driver, idplacahistory, path):
             image = Image.open(BytesIO(img_captcha_decode))
             image.convert("RGB")
             path_captchas = f"{path}/evidencias/captchas"
-            if not os.path.exists(path_captchas):
-                os.makedirs(path_captchas)
-                image.save(f"{path_captchas}/captcha_one.png", format="PNG")
-            else:
-                image.save(f"{path_captchas}/captcha_one.png", format="PNG")
+            image.save(f"{path_captchas}/captcha_one.png", format="PNG")
+            
             text = get_captcha_tesseract(f"{path_captchas}/captcha_one.png")
         raw = {
             "ose1": "1",
