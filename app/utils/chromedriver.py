@@ -1,5 +1,4 @@
 from selenium import webdriver
-import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options  # ⚠️ CAMBIA Chrome -> Edge
 from selenium.webdriver.support.ui import WebDriverWait
@@ -11,10 +10,9 @@ from datetime import datetime
 
 
 def get_driver(placa, idplacahistory, path):
-    options = uc.ChromeOptions()
+    options = Options()
 
     options.use_chromium = True  # Necesario para que se comporte como Chrome
-
 
     # Configuración headless + descarga
     options = Options()
@@ -34,6 +32,7 @@ def get_driver(placa, idplacahistory, path):
     options.add_argument("--safebrowsing-disable-auto-update")
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--window-size=1920,1080")
+    options.add_argument('--start-maximized')
 
     options.add_experimental_option("prefs", {
         "download.default_directory": path,
@@ -42,10 +41,8 @@ def get_driver(placa, idplacahistory, path):
         "safebrowsing.enabled": True,
         "plugins.always_open_pdf_externally": True  # 🔥 Importante para que Edge descargue PDF
     })
-
-    driver = uc.Chrome(
-        options=options,
-        use_subprocess=True)
+    options.set_capability('goog:loggingPrefs', {'browser': 'ALL'})  # ✅ compatible
+    driver = webdriver.Edge(options=options)
     return driver
 
     
