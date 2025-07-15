@@ -21,9 +21,6 @@ def main():
     fecha = datetime.now()
     fecha_personalizado = fecha.strftime("%Y-%m-%d")
 
-    """ quitar /apipy/download de path_pdf_boleta """
-    if args.path.startswith("/apipy/download"):
-        args.path = args.path.replace("/apipy/download", "")
         
     path_pdf_boleta = args.path
     

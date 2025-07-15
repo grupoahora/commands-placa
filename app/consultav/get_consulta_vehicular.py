@@ -27,7 +27,7 @@ def main():
 
     placa = args.placa.upper()
     idplacahistory = args.idplacahistory
-    path = f"/var/www/commands-placa/consultav/{placa}/{fecha_personalizado}/{idplacahistory}"
+    path = f"/var/www/laravelplacas/public/consultav/{placa}/{fecha_personalizado}/{idplacahistory}"
     os.makedirs(path, exist_ok=True)
     
     driver = None

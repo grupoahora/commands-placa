@@ -27,7 +27,7 @@ def main():
 
     placa = args.placa.upper()
     idplacahistory = args.idplacahistory
-    path = f"/var/www/commands-placa/boletas/{placa}/{fecha_personalizado}/{idplacahistory}"
+    path = f"/var/www/laravelplacas/public/boletas/{placa}/{fecha_personalizado}/{idplacahistory}"
     os.makedirs(path, exist_ok=True)
     
     driver = None
@@ -40,7 +40,7 @@ def main():
         
         result = {
             "message": message,
-            "path_pdf_boleta": f"/apipy/download{path_pdf_boleta}",
+            "path_pdf_boleta": f"{path_pdf_boleta}",
             "propietarios": propietarios if propietarios is not None else "null",
             "afectaciones": afectaciones if afectaciones is not None else "null"
         }

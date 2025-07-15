@@ -26,7 +26,7 @@ def main():
 
     idplacahistory = args.idplacahistory
     numero_documento = args.numero_documento
-    path = f"/var/www/commands-placa/multas/{numero_documento}/{fecha_personalizado}/{idplacahistory}"
+    path = f"/var/www/laravelplacas/public/multas/{numero_documento}/{fecha_personalizado}/{idplacahistory}"
     os.makedirs(path, exist_ok=True)
     
     driver = None
